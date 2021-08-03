@@ -1,0 +1,358 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <title>Simon Signals — Keep Talking and Nobody Explodes Module</title>
+    <meta name="viewport" content="initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="css/normalize.css">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <link rel="stylesheet" type="text/css" href="css/font.css">
+    <script src="js/ktane-utils.js"></script>
+	<script src="js/ruleseed.js"></script>
+	<script>
+		function setDefaultRules(rnd) {
+			setRules(rnd);
+		}
+
+        function setRules(rnd)
+        {
+			let offsets = [
+				'-4', '-3', '-2', '-1', '0', '1', '2', '3', '4'
+			];
+			let directionsThree = [
+				'-240', '-120', '0', '120', '240',
+				'<img src="img/BaseArrows/Base3-0.png">',
+				'<img src="img/BaseArrows/Base3-1.png">',
+				'<img src="img/BaseArrows/Base3-2.png">'
+			];
+			let directionsFour = [
+				'-270', '-180', '-90', '0', '90', '180', '270',
+				'<img src="img/BaseArrows/Base4-0.png">',
+				'<img src="img/BaseArrows/Base4-1.png">',
+				'<img src="img/BaseArrows/Base4-2.png">',
+				'<img src="img/BaseArrows/Base4-3.png">'
+			];
+			let directionsFive = [
+				'-288', '-216', '-144', '-72', '0', '72', '144', '216', '288',
+				'<img src="img/BaseArrows/Base5-0.png">',
+				'<img src="img/BaseArrows/Base5-1.png">',
+				'<img src="img/BaseArrows/Base5-2.png">',
+				'<img src="img/BaseArrows/Base5-3.png">',
+				'<img src="img/BaseArrows/Base5-4.png">'
+			];
+			let directionsSix = [
+				'-300', '-240', '-180', '-120', '-60', '0', '60', '120', '180', '240', '300',
+				'<img src="img/BaseArrows/Base6-0.png">',
+				'<img src="img/BaseArrows/Base6-1.png">',
+				'<img src="img/BaseArrows/Base6-2.png">',
+				'<img src="img/BaseArrows/Base6-3.png">',
+				'<img src="img/BaseArrows/Base6-4.png">',
+				'<img src="img/BaseArrows/Base6-5.png">'
+			];
+			let directions = [
+				directionsThree,
+				directionsFour,
+				directionsFive,
+				directionsSix
+			];
+			
+			for (let j = 3; j <= 6; j++) {
+				let tds = Array.from(document.querySelectorAll(`.simon-signals-${j} td`));
+				let remainingDir = [];
+				for (let i = 0; i < tds.length; i++) {
+					if (remainingDir.length === 0) {
+						remainingDir = directions[j-3].slice(0);
+						rnd.shuffleFisherYates(remainingDir);
+						rnd.next(0, 2);
+					}
+					let ix = rnd.next(0, remainingDir.length);
+					tds[i].innerHTML = remainingDir[ix];
+					remainingDir.splice(ix, 1);
+				}
+			}
+			let tdsC = Array.from(document.querySelectorAll(`.simon-signals-colors td`));
+			let remainingOff = [];
+			for (let k = 0; k < tdsC.length; k++) {
+				if (remainingOff.length === 0) {
+					remainingOff = offsets.slice(0);
+					rnd.shuffleFisherYates(remainingOff);
+				}
+				let jx = rnd.next(0, remainingOff.length);
+				tdsC[k].innerHTML = remainingOff[jx];
+				remainingOff.splice(jx, 1);
+			}
+		}
+	</script>
+	<style>
+		table.simon-signals {
+			text-align: center;
+			margin-top: 20px;
+		}
+		
+		table.simon-signals th {
+			background: #ddd;
+		}
+		table.simon-signals th.corner {
+			font-size: 18pt;
+			background: #bbb;
+		}
+		table.simon-signals-shape img {
+			width: 30px;
+		}
+		table.simon-signals-colors td {
+			font-size: 20pt;
+		}
+		table.simon-signals-colors th.serial {
+			width: 80px;
+		}
+		table.simon-signals-colors img {
+			width: 50px;
+		}
+	</style>
+</head>
+<body>
+    <div class="section">
+        <div class="page page-bg-01">
+            <div class="page-header">
+                <span class="page-header-doc-title">Keep Talking and Nobody Explodes Mod</span>
+                <span class="page-header-section-title">Simon Signals</span>
+            </div>
+            <div class="page-content">
+                <img src="img/Component/Simon Signals.svg" class="diagram">
+                <h2>On the Subject of Simon Signals</h2>
+                <p class="flavour-text">Because "Points" doesn't start with an S.</p>
+                <ul>
+					<li>A sequence of arrows will appear on the display.</li>
+					<li>Arrows can have different shapes, be different colors, and point in different directions.</li>
+					<li>Find the arrow's new direction based on it's shape, color, and initial direction.</li>
+					<li>To change an arrow's direction, tap on the screen to stop the sequence from cycling, then press the clockwise and counterclockwise arrow buttons to rotate the arrow.</li>
+					<li>The LEDs on the top of the module indicate the stage number.</li>
+					<li>You can press on the left and right arrow buttons to move forward or backward in the sequence.</li>
+					<li>You must input the full sequence for each additional stage. Complete all three stages to disarm the module.</li>
+				</ul>
+				<h3>Finding the Arrow Direction</h3>
+				<ul>
+				<li>Take the serial number character corresponding to the current stage. If the character is a letter, take its numeric value (A=1, B=2...).</li>
+				<li>Add the color offset obtained from the below table. If the number is less than 0 or greater than 9, add or subtract 10 until the number is between 0-9.</li>
+				<li>Take the last digit of this number.  On the following pages, find the table corresponding to the number of directions the arrow can point, and find the intersection between this number and the shape of the arrow.</li>
+				<li>If the intersection is a number, rotate the arrow clockwise that many degrees.</li>
+				<li>If the intersection is a dirction, point the arrow in the same direction.</li>
+				</ul>
+				<table class="simon-signals simon-signals-colors">
+					<tr>
+						<th class="corner"></th><th class="serial">First</th><th class="serial">Second</th><th class="serial">Third</th><th class="serial">Fourth</th><th class="serial">Fifth</th><th class="serial">Sixth</th>
+					</tr>
+					<tr>
+						<th class="color"><img src="img/ColorArrows/Red.png"></th>
+						<td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th class="color"><img src="img/ColorArrows/Yellow.png"></th>
+						<td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th class="color"><img src="img/ColorArrows/Blue.png"></th>
+						<td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th class="color"><img src="img/ColorArrows/White.png"></th>
+						<td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+				</table>
+			</div>
+        <div class="page-footer relative-footer">Page 1 of 3</div>
+        </div>
+        <div class="page page-bg-02">
+            <div class="page-header">
+                <span class="page-header-doc-title">Keep Talking and Nobody Explodes Mod</span>
+                <span class="page-header-section-title">Simon Signals</span>
+            </div>
+            <div class="page-content">
+				<table class="simon-signals simon-signals-shape simon-signals-3">
+					<tr>
+					<th class="corner">3</th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow1.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow2.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow3.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow4.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow5.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow6.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow7.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow8.png"></th>
+					</tr>
+					<tr>
+						<th>0</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>1</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>2</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>3</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>4</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>5</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>6</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>7</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>8</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>9</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+				</table>
+				<table class="simon-signals simon-signals-shape simon-signals-4">
+					<tr>
+					<th class="corner">4</th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow1.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow2.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow3.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow4.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow5.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow6.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow7.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow8.png"></th>
+					</tr>
+					<tr>
+						<th>0</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>1</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>2</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>3</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>4</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>5</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>6</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>7</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>8</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>9</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+				</table>
+			</div>
+        <div class="page-footer relative-footer">Page 2 of 3</div>
+        </div>
+        <div class="page page-bg-02">
+            <div class="page-header">
+                <span class="page-header-doc-title">Keep Talking and Nobody Explodes Mod</span>
+                <span class="page-header-section-title">Simon Signals</span>
+            </div>
+            <div class="page-content">
+				<table class="simon-signals simon-signals-shape simon-signals-5">
+					<tr>
+					<th class="corner">5</th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow1.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow2.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow3.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow4.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow5.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow6.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow7.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow8.png"></th>
+					</tr>
+					<tr>
+						<th>0</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>1</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>2</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>3</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>4</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>5</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>6</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>7</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>8</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>9</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+				</table>
+				<table class="simon-signals simon-signals-shape simon-signals-6">
+					<tr>
+					<th class="corner">6</th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow1.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow2.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow3.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow4.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow5.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow6.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow7.png"></th>
+					<th width="60px"><img src="img/ArrowShapes/Arrow8.png"></th>
+					</tr>
+					<tr>
+						<th>0</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>1</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>2</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>3</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>4</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>5</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>6</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>7</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>8</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+					<tr>
+						<th>9</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+					</tr>
+				</table>
+            </div>
+            <div class="page-footer relative-footer">Page 3 of 3</div>
+        </div>
+    </div>
+</body>
+</html>
