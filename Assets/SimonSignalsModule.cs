@@ -39,6 +39,8 @@ public class SimonSignalsModule : MonoBehaviour
     private int[] _colorsShapes;
     private int[] _expectedRotations;
     private int _showingArrow;
+    private int[] _shapeOffsetsPerStage;
+    private int[] _colorOffsetsPerStage;
 
     private RotationInfo[][] _rotationData;
     private readonly Queue<IEnumerator> _animationQueue = new Queue<IEnumerator>();
@@ -95,6 +97,16 @@ public class SimonSignalsModule : MonoBehaviour
             }
             _rotationData[j - 3] = list.ToArray();
         }
+
+        _shapeOffsetsPerStage = new int[3];
+        _colorOffsetsPerStage = new int[3];
+        _shapeOffsetsPerStage[0] = new[] { 2, 0 }[rnd.Next(0, 2)];
+        _colorOffsetsPerStage[0] = new[] { 2, 0 }[rnd.Next(0, 2)];
+        _shapeOffsetsPerStage[1] = new[] { 0, 1, 3 }[rnd.Next(0, 3)];
+        _colorOffsetsPerStage[1] = new[] { 0, 1, 3 }[rnd.Next(0, 3)];
+        _shapeOffsetsPerStage[2] = new[] { 0, 1, 4, 3 }[rnd.Next(0, 3)];
+        _colorOffsetsPerStage[2] = new[] { 0, 1, 4, 3 }[rnd.Next(0, 3)];
+
         //RULE SEED END
 
         ClockwiseButton.OnInteract = ButtonPress(ClockwiseButton, delegate
@@ -155,6 +167,7 @@ public class SimonSignalsModule : MonoBehaviour
             Arrow.material.mainTexture = texture();
             Arrow.transform.localEulerAngles = new Vector3(0, 0, angle());
         }
+        Arrow.gameObject.SetActive(false);
     }
 
     private Texture texture()
@@ -208,8 +221,8 @@ public class SimonSignalsModule : MonoBehaviour
         _expectedRotations = new int[numArrows];
         for (var i = 0; i < _expectedRotations.Length; i++)
         {
-            var refShape = _colorsShapes[(i + (_currentStage == 0 ? 0 : -1) + numArrows) % numArrows] & 7;
-            var refColor = _colorsShapes[(i + (_currentStage == 0 ? 0 : _currentStage == 1 ? -1 : -2) + numArrows) % numArrows] >> 3;
+            var refShape = _colorsShapes[(i + _shapeOffsetsPerStage[_currentStage]) % numArrows] & 7;
+            var refColor = _colorsShapes[(i + _colorOffsetsPerStage[_currentStage]) % numArrows] >> 3;
             var whatToDo = _rotationData[_numRotations[i] - 3][(refColor << 3) | refShape];
 
             if (whatToDo.RotationType == RotationType.Relative)
