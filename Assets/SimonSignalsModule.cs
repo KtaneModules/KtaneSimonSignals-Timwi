@@ -2,50 +2,69 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
+
 using Rnd = UnityEngine.Random;
 
 /// <summary>
 /// On the Subject of Simon Signals
-/// Created by JakkOfKlubs and Lumbud84
+/// Created by Lumbud84, JakkOfKlubs and Timwi
 /// </summary>
 public class SimonSignalsModule : MonoBehaviour
 {
+    [UnityEditor.MenuItem("DoStuff/DoStuff")]
+    public static void DoStuff()
+    {
+        var m = FindObjectOfType<SimonSignalsModule>();
+        m.ArrowTextures = m.ArrowTextures.OrderBy(x => x.name).ToArray();
+    }
+
     public KMBombInfo Bomb;
     public KMBombModule Module;
     public KMAudio Audio;
     public KMRuleSeedable RuleSeedable;
 
+    public KMSelectable ClockwiseButton;
+    public KMSelectable CounterClockwiseButton;
+    public KMSelectable SubmitButton;
+
+    public MeshRenderer Arrow;
+    public Texture[] ArrowTextures;
+
     private static int _moduleIdCounter = 1;
     private int _moduleId;
-    private bool _moduleSolved = false;
+    private bool _moduleSolved;
+    private int _currentStage;
+    private int[] _numRotations;
+    private int[] _initialRotations;
+    private int[] _currentRotations;
+    private int[] _colorsShapes;
+    private int[] _expectedRotations;
+    private int _showingArrow;
 
-    public KMSelectable clockButton;
-    public KMSelectable counterButton;
-    public KMSelectable leftButton;
-    public KMSelectable rightButton;
-    public KMSelectable resetButton;
-    public KMSelectable submitButton;
+    private RotationInfo[][] _rotationData;
+    private readonly Queue<IEnumerator> _animationQueue = new Queue<IEnumerator>();
+    private Coroutine _runningAnimationQueue;
+    private static readonly int[] _angleOffsets = new int[] { 180, 315, 0, 270 };
+    private static readonly string[] _colorNames = new[] { "red", "green", "blue", "gray" };
 
-    public MeshRenderer arrow;
-    public Texture[] arrowTextures;
-
-    private int r = 0;
-    private Coroutine rotateClockwise;
-
-    RotationInfo[][] directionCells;
-    int[] colorOffsets;
-
-    struct RotationInfo
+    private enum RotationType
     {
-        public int Angle;
-        public bool Forced;
-        public RotationInfo(int angle, bool forced)
+        Static,
+        Clockwise,
+        CounterClockwise
+    }
+
+    private struct RotationInfo
+    {
+        public RotationType RotationType { get; private set; }
+        public int Amount { get; private set; }
+        public RotationInfo(RotationType rotationType, int amount)
         {
-            Angle = angle;
-            Forced = forced;
+            Amount = amount;
+            RotationType = rotationType;
         }
     }
 
@@ -53,173 +72,174 @@ public class SimonSignalsModule : MonoBehaviour
     {
         _moduleId = _moduleIdCounter++;
 
-        int randTexture = Rnd.Range(0, arrowTextures.Length);
-        //arrow.material = arrowMat;
-        //arrowMat = arrow.sharedMaterial;
-        arrow.material.mainTexture = arrowTextures[randTexture];
-
         //RULE SEED
         var rnd = RuleSeedable.GetRNG();
 
-        int[] offsets = { -4, -3, -2, -1, 0, 1, 2, 3, 4 };
+        var directions = Enumerable.Range(3, 4).Select(n =>
+            Enumerable.Range(-n + 1, 2 * n - 2).Select(i => new RotationInfo(RotationType.Static, i >= 0 ? i + 1 : i))
+                .Concat(Enumerable.Range(0, n).Select(i => new RotationInfo(RotationType.Clockwise, i)))
+                .Concat(Enumerable.Range(0, n).Select(i => new RotationInfo(RotationType.CounterClockwise, i)))
+                .ToArray())
+            .ToArray();
 
-        var directionsThree = new RotationInfo[]
-        {
-            new RotationInfo(-240, false),
-            new RotationInfo(-120, false),
-            new RotationInfo(0, false),
-            new RotationInfo(120, false),
-            new RotationInfo(240, false),
-            new RotationInfo(60, true),
-            new RotationInfo(180, true),
-            new RotationInfo(300, true)
-        };
-        var directionsFour = new RotationInfo[]
-        {
-            new RotationInfo(-270, false),
-            new RotationInfo(-180, false),
-            new RotationInfo(-90, false),
-            new RotationInfo(0, false),
-            new RotationInfo(90, false),
-            new RotationInfo(180, false),
-            new RotationInfo(270, false),
-            new RotationInfo(45, true),
-            new RotationInfo(135, true),
-            new RotationInfo(225, true),
-            new RotationInfo(315, true)
-        };
-        var directionsFive = new RotationInfo[]
-        {
-            new RotationInfo(-288, false),
-            new RotationInfo(-216, false),
-            new RotationInfo(-144, false),
-            new RotationInfo(-72, false),
-            new RotationInfo(0, false),
-            new RotationInfo(72, false),
-            new RotationInfo(144, false),
-            new RotationInfo(216, false),
-            new RotationInfo(288, false),
-            new RotationInfo(0, true),
-            new RotationInfo(72, true),
-            new RotationInfo(144, true),
-            new RotationInfo(216, true),
-            new RotationInfo(288, true)
-        };
-        var directionsSix = new RotationInfo[]
-        {
-            new RotationInfo(-300, false),
-            new RotationInfo(-240, false),
-            new RotationInfo(-180, false),
-            new RotationInfo(-120, false),
-            new RotationInfo(-60, false),
-            new RotationInfo(0, false),
-            new RotationInfo(60, false),
-            new RotationInfo(120, false),
-            new RotationInfo(180, false),
-            new RotationInfo(240, false),
-            new RotationInfo(300, false),
-            new RotationInfo(90, true),
-            new RotationInfo(150, true),
-            new RotationInfo(210, true),
-            new RotationInfo(270, true),
-            new RotationInfo(330, true),
-            new RotationInfo(30, true)
-        };
+        _rotationData = new RotationInfo[4][];
 
-        var directions = new[]
+        for (var j = 3; j <= 6; j++)
         {
-            directionsThree, directionsFour, directionsFive, directionsSix
-        };
-        
-        directionCells = new RotationInfo[4][];
-
-        for (int j = 0; j <= 3; j++)
-        {
+            var list = new List<RotationInfo>();
             var remainingDir = new List<RotationInfo>();
-            directionCells[j] = new RotationInfo[80];
-            for (var i = 0; i < 80; i++)
+            for (var i = 0; i < 32; i++)
             {
                 if (remainingDir.Count == 0)
                 {
-                    remainingDir = directions[j].ToList();
+                    remainingDir.AddRange(directions[j - 3]);
                     rnd.ShuffleFisherYates(remainingDir);
-                    rnd.Next(0, 2);
                 }
                 var ix = rnd.Next(0, remainingDir.Count);
-                directionCells[j][i] = remainingDir[ix];
+                list.Add(remainingDir[ix]);
                 remainingDir.RemoveAt(ix);
             }
+            _rotationData[j - 3] = list.ToArray();
         }
-
-        colorOffsets = new int[24];
-
-        var remainingOff = new List<int>();
-        for (var k = 0; k < 24; k++)
-        {
-            if (remainingOff.Count == 0)
-            {
-                remainingOff = offsets.ToList();
-                rnd.ShuffleFisherYates(remainingOff);
-            }
-            var jx = rnd.Next(0, remainingOff.Count);
-            colorOffsets[k] = remainingOff[jx];
-            remainingOff.RemoveAt(jx);
-        }
-
         //RULE SEED END
 
-        clockButton.OnInteract += delegate ()
+        ClockwiseButton.OnInteract += delegate ()
         {
-            rotateClockwise = StartCoroutine(RotateArrow(r, r + 90));
-            r += 90;
+            var oldRot = angle();
+            _currentRotations[_showingArrow] = (_currentRotations[_showingArrow] + 1) % _numRotations[_showingArrow];
+            _animationQueue.Enqueue(RotateArrow(oldRot, angle(), texture()));
             return false;
         };
-        counterButton.OnInteract += delegate ()
+        CounterClockwiseButton.OnInteract += delegate ()
         {
-            rotateClockwise = StartCoroutine(RotateArrow(r, r - 90));
-            r -= 90;
+            var oldRot = angle();
+            _currentRotations[_showingArrow] = (_currentRotations[_showingArrow] + _numRotations[_showingArrow] - 1) % _numRotations[_showingArrow];
+            _animationQueue.Enqueue(RotateArrow(oldRot, angle(), texture()));
             return false;
         };
-        leftButton.OnInteract += delegate ()
-        {
-            Debug.LogFormat("left");
-            return false;
-        };
-        rightButton.OnInteract += delegate ()
-        {
-            Debug.LogFormat("right");
-            return false;
-        };
-        resetButton.OnInteract += delegate ()
-        {
-            Debug.LogFormat("reset");
-            return false;
-        };
-        submitButton.OnInteract += delegate ()
+        SubmitButton.OnInteract += delegate ()
         {
             Debug.LogFormat("submit");
             return false;
         };
+
+        SetStage(0);
+        _runningAnimationQueue = StartCoroutine(AnimationQueue());
+        StartCoroutine(FlashArrows());
     }
 
-    void GenerateArrows()
+    private IEnumerator FlashArrows()
     {
-        for (int i = 0; i < 6; i++)
+        while (!_moduleSolved)
         {
+            _runningAnimationQueue = StartCoroutine(AnimationQueue());
+            yield return new WaitForSeconds(1.2f);
+            StopCoroutine(_runningAnimationQueue);
 
+            _showingArrow = (_showingArrow + 1) % _initialRotations.Length;
+            Arrow.gameObject.SetActive(false);
+            yield return new WaitForSeconds(.1f);
+            Arrow.gameObject.SetActive(true);
+            Arrow.sharedMaterial.mainTexture = texture();
+            Arrow.transform.localEulerAngles = new Vector3(0, 0, angle());
         }
     }
 
-    IEnumerator RotateArrow(float start, float end)
+    private Texture texture()
+    {
+        return ArrowTextures[(_colorsShapes[_showingArrow] << 1) + (_currentRotations[_showingArrow] == _initialRotations[_showingArrow] ? 0 : 1)];
+    }
+
+    private int angle()
+    {
+        return -_angleOffsets[_numRotations[_showingArrow] - 3] - 360 * _currentRotations[_showingArrow] / _numRotations[_showingArrow];
+    }
+
+    private void SetStage(int stage)
+    {
+        _currentStage = stage;
+
+        if (_currentStage > 0)
+        {
+            var newNumPositions = new List<int>(_numRotations);
+            var newInitialRotations = new List<int>(_currentRotations);
+            var newColorsShapes = new List<int>(_colorsShapes);
+            var insertionPoint = Rnd.Range(0, 3 + _currentStage);
+            newNumPositions.Insert(insertionPoint, Rnd.Range(3, 7));
+            newInitialRotations.Insert(insertionPoint, Rnd.Range(0, newNumPositions[insertionPoint]));
+            newColorsShapes.Insert(insertionPoint, Rnd.Range(0, 4 * 8));
+
+            _numRotations = newNumPositions.ToArray();
+            _initialRotations = newInitialRotations.ToArray();
+            _colorsShapes = newColorsShapes.ToArray();
+        }
+        else
+        {
+            _numRotations = Enumerable.Range(0, 3).Select(_ => Rnd.Range(3, 7)).ToArray();
+            _initialRotations = Enumerable.Range(0, 3).Select(i => Rnd.Range(0, _numRotations[i])).ToArray();
+            _colorsShapes = Enumerable.Range(0, 3).Select(i => Rnd.Range(0, 4 * 8)).ToArray();
+        }
+        _currentRotations = _initialRotations.ToArray();
+
+        var numArrows = _currentStage + 3;
+        _expectedRotations = new int[numArrows];
+        for (var i = 0; i < _expectedRotations.Length; i++)
+        {
+            var refIx = (i - _currentStage + numArrows) % numArrows;
+            var whatToDo = _rotationData[_numRotations[refIx] - 3][_colorsShapes[i]];
+            if (whatToDo.RotationType == RotationType.Static)
+                _expectedRotations[i] = (_initialRotations[i] + whatToDo.Amount + _numRotations[i]) % _numRotations[i];
+            else if (whatToDo.RotationType == RotationType.Clockwise)
+                _expectedRotations[i] = (_initialRotations[i] + (whatToDo.Amount - _initialRotations[refIx] + _numRotations[refIx]) % _numRotations[refIx]) % _numRotations[i];
+            else // whatToDo.RotationType == RotationType.CounterClockwise
+                _expectedRotations[i] = (_initialRotations[i] - (_initialRotations[refIx] - whatToDo.Amount + _numRotations[refIx]) % _numRotations[refIx] + _numRotations[i]) % _numRotations[i];
+        }
+
+        var j = new JObject();
+        j["stage"] = _currentStage + 1;
+        var arr = new JArray();
+        for (var i = 0; i < numArrows; i++)
+        {
+            var aj = new JObject();
+            aj["colorshape"] = _colorsShapes[i];
+            aj["initial"] = _initialRotations[i];
+            aj["num"] = _numRotations[i];
+            aj["expected"] = _expectedRotations[i];
+            arr.Add(aj);
+        }
+        j["arrows"] = arr;
+
+        Debug.LogFormat("[Simon Signals #{0}] {1}", _moduleId, j.ToString(Formatting.None));
+    }
+
+    IEnumerator RotateArrow(float startAngle, float endAngle, Texture texture)
     {
         var duration = 0.15f;
         var elapsed = 0f;
+        var start = Quaternion.Euler(0, 0, startAngle);
+        var end = Quaternion.Euler(0, 0, endAngle);
+
         while (elapsed < duration)
         {
-            arrow.transform.localEulerAngles = new Vector3(90, Easing.InOutQuad(elapsed, start, end, duration), 0);
+            Arrow.transform.localRotation = Quaternion.Slerp(start, end, Easing.InOutQuad(elapsed, 0, 1, duration));
             yield return null;
             elapsed += Time.deltaTime;
         }
-        arrow.transform.localEulerAngles = new Vector3(90, end, 0);
+        Arrow.transform.localRotation = end;
+        Arrow.sharedMaterial.mainTexture = texture;
+    }
+
+    IEnumerator AnimationQueue()
+    {
+        while (true)
+        {
+            if (_animationQueue.Count > 0)
+            {
+                var item = _animationQueue.Dequeue();
+                while (item.MoveNext())
+                    yield return item;
+            }
+            yield return null;
+        }
     }
 }

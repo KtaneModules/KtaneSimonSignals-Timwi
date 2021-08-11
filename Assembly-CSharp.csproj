@@ -9,7 +9,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{FAC079AD-BFFB-D151-2C0E-1F4AC9E06AF3}</ProjectGuid>
+    <ProjectGuid>{62CFD834-AC29-16DE-3EAE-3D67ED6046BF}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp</AssemblyName>
@@ -51,19 +51,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\Callsign.cs" />
-     <Compile Include="Assets\ColorInfo.cs" />
-     <Compile Include="Assets\Flag.cs" />
-     <Compile Include="Assets\FlagDesign.cs" />
+     <Compile Include="Assets\KMScripts\Easing.cs" />
      <Compile Include="Assets\KMScripts\GeneralExtensions.cs" />
      <Compile Include="Assets\KMScripts\KMBombInfoExtensions.cs" />
      <Compile Include="Assets\KMScripts\KMColorblindMode.cs" />
      <Compile Include="Assets\KMScripts\KMRuleSeedable.cs" />
      <Compile Include="Assets\KMScripts\PrivateWhenPlayingAttribute.cs" />
      <Compile Include="Assets\KMScripts\ReadOnlyWhenPlayingAttribute.cs" />
-     <Compile Include="Assets\MaritimeBase.cs" />
-     <Compile Include="Assets\MaritimeFlagsModule.cs" />
-     <Compile Include="Assets\MaritimeSemaphoreModule.cs" />
+     <Compile Include="Assets\SimonSignalsModule.cs" />
      <Compile Include="Assets\TestHarness\EdgeworkConfiguration.cs" />
      <Compile Include="Assets\TestHarness\NeedyTimer.cs" />
      <Compile Include="Assets\TestHarness\SevenSegDisplay.cs" />
@@ -262,10 +257,10 @@
  <HintPath>D:/Unity/Editor/Data/UnityExtensions/Unity/UnitySpatialTracking/RuntimeEditor/UnityEngine.SpatialTracking.dll</HintPath>
  </Reference>
  <Reference Include="KMFramework">
- <HintPath>D:/c/KTANE/MaritimeModules/Assets/Plugins/Managed/KMFramework.dll</HintPath>
+ <HintPath>D:/c/KTANE/SimonSignals/Assets/Plugins/Managed/KMFramework.dll</HintPath>
  </Reference>
  <Reference Include="Newtonsoft.Json">
- <HintPath>D:/c/KTANE/MaritimeModules/Assets/Plugins/Managed/Newtonsoft.Json.dll</HintPath>
+ <HintPath>D:/c/KTANE/SimonSignals/Assets/Plugins/Managed/Newtonsoft.Json.dll</HintPath>
  </Reference>
  <Reference Include="UnityEngine.Analytics">
  <HintPath>C:/Users/Timwi/AppData/Local/Unity/cache/packages/packages.unity.com/com.unity.analytics@2.0.13/UnityEngine.Analytics.dll</HintPath>

@@ -9,7 +9,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{1E2D5176-8984-4E2F-0FBD-C44E985362EF}</ProjectGuid>
+    <ProjectGuid>{309A060F-5D8E-8117-2797-04AF010090E5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp-Editor</AssemblyName>
@@ -345,10 +345,10 @@
  <HintPath>D:/Unity/Editor/Data/PlaybackEngines/windowsstandalonesupport/UnityEditor.WindowsStandalone.Extensions.dll</HintPath>
  </Reference>
  <Reference Include="KMFramework">
- <HintPath>D:/c/KTANE/MaritimeModules/Assets/Plugins/Managed/KMFramework.dll</HintPath>
+ <HintPath>D:/c/KTANE/SimonSignals/Assets/Plugins/Managed/KMFramework.dll</HintPath>
  </Reference>
  <Reference Include="Newtonsoft.Json">
- <HintPath>D:/c/KTANE/MaritimeModules/Assets/Plugins/Managed/Newtonsoft.Json.dll</HintPath>
+ <HintPath>D:/c/KTANE/SimonSignals/Assets/Plugins/Managed/Newtonsoft.Json.dll</HintPath>
  </Reference>
  <Reference Include="UnityEditor.Advertisements">
  <HintPath>C:/Users/Timwi/AppData/Local/Unity/cache/packages/packages.unity.com/com.unity.ads@2.0.8/Editor/UnityEditor.Advertisements.dll</HintPath>
@@ -371,7 +371,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Assembly-CSharp.csproj">
-      <Project>{FAC079AD-BFFB-D151-2C0E-1F4AC9E06AF3}</Project>      <Name>Assembly-CSharp</Name>    </ProjectReference>
+      <Project>{62CFD834-AC29-16DE-3EAE-3D67ED6046BF}</Project>      <Name>Assembly-CSharp</Name>    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
