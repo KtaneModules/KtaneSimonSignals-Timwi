@@ -13,9 +13,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: SimonSignalsModule
   title: Simon Signals
-  author: JakkOfKlubs
-  description: "Because \u201CPoints\u201D doesn\u2019t start with an S.\r\n\nMade
-    by JakkOfKlubs\nIdea by Lumbud84"
+  author: JakkOfKlubs & Timwi
+  description: "Because \u201CPoints\u201D doesn\u2019t start with an S.\r\n\nModeled
+    and implemented by JakkOfKlubs and Timwi\nCombining ideas from Lumbud84, JakkOfKlubs
+    and Timwi"
   version: 1.0
   outputFolder: build
   previewImage: {fileID: 0}

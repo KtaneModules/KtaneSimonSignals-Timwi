@@ -14,13 +14,6 @@ using Rnd = UnityEngine.Random;
 /// </summary>
 public class SimonSignalsModule : MonoBehaviour
 {
-    [UnityEditor.MenuItem("DoStuff/DoStuff")]
-    public static void DoStuff()
-    {
-        var m = FindObjectOfType<SimonSignalsModule>();
-        m.ArrowTextures = m.ArrowTextures.OrderBy(x => x.name).ToArray();
-    }
-
     public KMBombInfo Bomb;
     public KMBombModule Module;
     public KMAudio Audio;
@@ -32,6 +25,9 @@ public class SimonSignalsModule : MonoBehaviour
 
     public MeshRenderer Arrow;
     public Texture[] ArrowTextures;
+    public MeshRenderer[] Leds;
+    public Material LedOn;
+    public Material LedOff;
 
     private static int _moduleIdCounter = 1;
     private int _moduleId;
@@ -48,13 +44,11 @@ public class SimonSignalsModule : MonoBehaviour
     private readonly Queue<IEnumerator> _animationQueue = new Queue<IEnumerator>();
     private Coroutine _runningAnimationQueue;
     private static readonly int[] _angleOffsets = new int[] { 180, 315, 0, 270 };
-    private static readonly string[] _colorNames = new[] { "red", "green", "blue", "gray" };
 
     private enum RotationType
     {
-        Static,
-        Clockwise,
-        CounterClockwise
+        Relative,
+        Absolute
     }
 
     private struct RotationInfo
@@ -71,14 +65,14 @@ public class SimonSignalsModule : MonoBehaviour
     private void Start()
     {
         _moduleId = _moduleIdCounter++;
+        Arrow.gameObject.SetActive(false);
 
         //RULE SEED
         var rnd = RuleSeedable.GetRNG();
 
         var directions = Enumerable.Range(3, 4).Select(n =>
-            Enumerable.Range(-n + 1, 2 * n - 2).Select(i => new RotationInfo(RotationType.Static, i >= 0 ? i + 1 : i))
-                .Concat(Enumerable.Range(0, n).Select(i => new RotationInfo(RotationType.Clockwise, i)))
-                .Concat(Enumerable.Range(0, n).Select(i => new RotationInfo(RotationType.CounterClockwise, i)))
+            Enumerable.Range(-n + 1, 2 * n - 2).Select(i => new RotationInfo(RotationType.Relative, i >= 0 ? i + 1 : i))
+                .Concat(Enumerable.Range(0, n).Select(i => new RotationInfo(RotationType.Absolute, i)))
                 .ToArray())
             .ToArray();
 
@@ -103,29 +97,46 @@ public class SimonSignalsModule : MonoBehaviour
         }
         //RULE SEED END
 
-        ClockwiseButton.OnInteract += delegate ()
+        ClockwiseButton.OnInteract = ButtonPress(ClockwiseButton, delegate
         {
             var oldRot = angle();
             _currentRotations[_showingArrow] = (_currentRotations[_showingArrow] + 1) % _numRotations[_showingArrow];
             _animationQueue.Enqueue(RotateArrow(oldRot, angle(), texture()));
-            return false;
-        };
-        CounterClockwiseButton.OnInteract += delegate ()
+        });
+
+        CounterClockwiseButton.OnInteract = ButtonPress(CounterClockwiseButton, delegate
         {
             var oldRot = angle();
             _currentRotations[_showingArrow] = (_currentRotations[_showingArrow] + _numRotations[_showingArrow] - 1) % _numRotations[_showingArrow];
             _animationQueue.Enqueue(RotateArrow(oldRot, angle(), texture()));
-            return false;
-        };
-        SubmitButton.OnInteract += delegate ()
+        });
+
+        SubmitButton.OnInteract = ButtonPress(SubmitButton, delegate
         {
-            Debug.LogFormat("submit");
-            return false;
-        };
+            if (Enumerable.Range(0, _currentStage + 3).All(i => _currentRotations[i] == _expectedRotations[i]))
+            {
+                SetStage(_currentStage + 1);
+                return;
+            }
+            Module.HandleStrike();
+            Debug.LogFormat("[Simon Signals #{0}] {1}", _moduleId, JsonForLogging(isStrike: true));
+        });
 
         SetStage(0);
         _runningAnimationQueue = StartCoroutine(AnimationQueue());
         StartCoroutine(FlashArrows());
+    }
+
+    private KMSelectable.OnInteractHandler ButtonPress(KMSelectable button, Action action)
+    {
+        return delegate
+        {
+            Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, button.transform);
+            button.AddInteractionPunch(button == SubmitButton ? 1 : .5f);
+            if (!_moduleSolved)
+                action();
+            return false;
+        };
     }
 
     private IEnumerator FlashArrows()
@@ -135,12 +146,13 @@ public class SimonSignalsModule : MonoBehaviour
             _runningAnimationQueue = StartCoroutine(AnimationQueue());
             yield return new WaitForSeconds(1.2f);
             StopCoroutine(_runningAnimationQueue);
+            _animationQueue.Clear();
 
             _showingArrow = (_showingArrow + 1) % _initialRotations.Length;
             Arrow.gameObject.SetActive(false);
             yield return new WaitForSeconds(.1f);
             Arrow.gameObject.SetActive(true);
-            Arrow.sharedMaterial.mainTexture = texture();
+            Arrow.material.mainTexture = texture();
             Arrow.transform.localEulerAngles = new Vector3(0, 0, angle());
         }
     }
@@ -158,6 +170,17 @@ public class SimonSignalsModule : MonoBehaviour
     private void SetStage(int stage)
     {
         _currentStage = stage;
+
+        for (var i = 0; i < Leds.Length; i++)
+            Leds[i].sharedMaterial = i < _currentStage ? LedOn : LedOff;
+
+        if (_currentStage == 3)
+        {
+            Module.HandlePass();
+            _moduleSolved = true;
+            Debug.LogFormat("[Simon Signals #{0}] Module solved.", _moduleId);
+            return;
+        }
 
         if (_currentStage > 0)
         {
@@ -185,18 +208,26 @@ public class SimonSignalsModule : MonoBehaviour
         _expectedRotations = new int[numArrows];
         for (var i = 0; i < _expectedRotations.Length; i++)
         {
-            var refIx = (i - _currentStage + numArrows) % numArrows;
-            var whatToDo = _rotationData[_numRotations[refIx] - 3][_colorsShapes[i]];
-            if (whatToDo.RotationType == RotationType.Static)
+            var refShape = _colorsShapes[(i + (_currentStage == 0 ? 0 : -1) + numArrows) % numArrows] & 7;
+            var refColor = _colorsShapes[(i + (_currentStage == 0 ? 0 : _currentStage == 1 ? -1 : -2) + numArrows) % numArrows] >> 3;
+            var whatToDo = _rotationData[_numRotations[i] - 3][(refColor << 3) | refShape];
+
+            if (whatToDo.RotationType == RotationType.Relative)
                 _expectedRotations[i] = (_initialRotations[i] + whatToDo.Amount + _numRotations[i]) % _numRotations[i];
-            else if (whatToDo.RotationType == RotationType.Clockwise)
-                _expectedRotations[i] = (_initialRotations[i] + (whatToDo.Amount - _initialRotations[refIx] + _numRotations[refIx]) % _numRotations[refIx]) % _numRotations[i];
-            else // whatToDo.RotationType == RotationType.CounterClockwise
-                _expectedRotations[i] = (_initialRotations[i] - (_initialRotations[refIx] - whatToDo.Amount + _numRotations[refIx]) % _numRotations[refIx] + _numRotations[i]) % _numRotations[i];
+            else // whatToDo.RotationType == RotationType.Absolute
+                _expectedRotations[i] = whatToDo.Amount;
         }
 
+        Debug.LogFormat("[Simon Signals #{0}] {1}", _moduleId, JsonForLogging());
+    }
+
+    private string JsonForLogging(bool isStrike = false)
+    {
+        var numArrows = _currentStage + 3;
         var j = new JObject();
         j["stage"] = _currentStage + 1;
+        if (isStrike)
+            j["strike"] = 1;
         var arr = new JArray();
         for (var i = 0; i < numArrows; i++)
         {
@@ -205,11 +236,12 @@ public class SimonSignalsModule : MonoBehaviour
             aj["initial"] = _initialRotations[i];
             aj["num"] = _numRotations[i];
             aj["expected"] = _expectedRotations[i];
+            if (isStrike)
+                aj["current"] = _currentRotations[i];
             arr.Add(aj);
         }
         j["arrows"] = arr;
-
-        Debug.LogFormat("[Simon Signals #{0}] {1}", _moduleId, j.ToString(Formatting.None));
+        return j.ToString(Formatting.None);
     }
 
     IEnumerator RotateArrow(float startAngle, float endAngle, Texture texture)
@@ -226,7 +258,7 @@ public class SimonSignalsModule : MonoBehaviour
             elapsed += Time.deltaTime;
         }
         Arrow.transform.localRotation = end;
-        Arrow.sharedMaterial.mainTexture = texture;
+        Arrow.material.mainTexture = texture;
     }
 
     IEnumerator AnimationQueue()
