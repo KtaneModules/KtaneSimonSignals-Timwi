@@ -82,7 +82,7 @@ public static class GeneralExtensions
                 var newLine = GetLine(remainingLine, maxLength - prefix.Length);
                 lines.Add(newLine);
                 remainingLine = remainingLine.Substring(newLine.Length).Trim();
-                // Keep iterating as int as we've got words remaining 
+                // Keep iterating as int as we've got words remaining
                 // in the line.
             } while (remainingLine.Length > 0);
         }
@@ -226,6 +226,26 @@ public static class GeneralExtensions
         return list;
     }
 
+    /// <summary>
+    ///     Returns a random element from the specified collection.</summary>
+    /// <typeparam name="T">
+    ///     The type of the elements in the collection.</typeparam>
+    /// <param name="src">
+    ///     The collection to pick from.</param>
+    /// <param name="rnd">
+    ///     Optionally, a random number generator to use.</param>
+    /// <returns>
+    ///     The element randomly picked.</returns>
+    /// <remarks>
+    ///     This method enumerates the entire input sequence into an array.</remarks>
+    public static T PickRandom<T>(this IEnumerable<T> src)
+    {
+        var list = (src as IList<T>) ?? src.ToArray();
+        if (list.Count == 0)
+            throw new InvalidOperationException("Cannot pick an element from an empty set.");
+        return list[UnityEngine.Random.Range(0, list.Count)];
+    }
+
     public static bool TryParseTime(this string timeString, out float time)
     {
         float _;
@@ -261,5 +281,19 @@ public static class GeneralExtensions
     public static void AppendLineFormat(this StringBuilder builder, string message, params object[] args)
     {
         builder.AppendLine(string.Format(message, args));
+    }
+
+    public static int IndexOf<T>(this IEnumerable<T> source, Func<T, bool> predicate)
+    {
+        if (source == null)
+            throw new ArgumentNullException("source");
+        var i = 0;
+        foreach (var elem in source)
+        {
+            if (predicate(elem))
+                return i;
+            i++;
+        }
+        return -1;
     }
 }
