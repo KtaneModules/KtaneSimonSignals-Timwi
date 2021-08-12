@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -28,6 +29,7 @@ public class SimonSignalsModule : MonoBehaviour
     public MeshRenderer[] Leds;
     public Material LedOn;
     public Material LedOff;
+    public TextMesh[] TPLetters;
 
     private static int _moduleIdCounter = 1;
     private int _moduleId;
@@ -46,6 +48,7 @@ public class SimonSignalsModule : MonoBehaviour
     private readonly Queue<IEnumerator> _animationQueue = new Queue<IEnumerator>();
     private Coroutine _runningAnimationQueue;
     private static readonly int[] _angleOffsets = new int[] { 180, 315, 0, 270 };
+    private char[] _tpLetters;
 
     private enum RotationType
     {
@@ -71,6 +74,7 @@ public class SimonSignalsModule : MonoBehaviour
 
         //RULE SEED
         var rnd = RuleSeedable.GetRNG();
+        Debug.LogFormat("[Simon Signals #{0}] Using rule seed: {1}", _moduleId, rnd.Seed);
 
         var directions = Enumerable.Range(3, 4).Select(n =>
             Enumerable.Range(-n + 1, 2 * n - 2).Select(i => new RotationInfo(RotationType.Relative, i >= 0 ? i + 1 : i))
@@ -136,7 +140,13 @@ public class SimonSignalsModule : MonoBehaviour
 
         SetStage(0);
         _runningAnimationQueue = StartCoroutine(AnimationQueue());
-        StartCoroutine(FlashArrows());
+
+        Module.OnActivate = delegate
+        {
+            foreach (var letter in TPLetters)
+                letter.gameObject.SetActive(TwitchPlaysActive);
+            StartCoroutine(FlashArrows());
+        };
     }
 
     private KMSelectable.OnInteractHandler ButtonPress(KMSelectable button, Action action)
@@ -151,23 +161,62 @@ public class SimonSignalsModule : MonoBehaviour
         };
     }
 
+    private const float _tpLetterDown = .34f;
+    private const float _tpLetterUp = .6f;
+    private const float _tpLetterLeft = -0.34f;
+    private const float _tpLetterRight = 0.34f;
+    private IEnumerator MoveLetter(TextMesh letter, bool up, float x)
+    {
+        var duration = .2f;
+        var elapsed = 0f;
+        const float z = -.001f;
+        while (elapsed < duration)
+        {
+            letter.transform.localPosition = new Vector3(x, Easing.OutQuad(elapsed, up ? _tpLetterDown : _tpLetterUp, up ? _tpLetterUp : _tpLetterDown, duration), z);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        letter.transform.localPosition = new Vector3(x, up ? _tpLetterUp : _tpLetterDown, z);
+    }
+
     private IEnumerator FlashArrows()
     {
+        yield return new WaitForSeconds(Rnd.Range(0, 1.3f));
+        _tpLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray().Shuffle().Take(5).ToArray();
+        var useLetter = 0;
+
+        var letterData = new bool?[][]
+        {
+            new bool?[] { null, false, true },
+            new bool?[] { false, true, false, true },
+            new bool?[] { null, true, false, true, false },
+            new bool?[] { null, false, true, null, false, true }
+        };
+
         while (!_moduleSolved)
         {
+            Arrow.gameObject.SetActive(true);
+            Arrow.material.mainTexture = texture();
+            Arrow.transform.localEulerAngles = new Vector3(0, 0, angle());
             _runningAnimationQueue = StartCoroutine(AnimationQueue());
+
+            TPLetters[useLetter].text = _tpLetters[_showingArrow].ToString();
+            var isLeft = letterData[_numRotations[_showingArrow] - 3][_currentRotations[_showingArrow]];
+            var xCoord = isLeft ?? Rnd.Range(0, 2) != 0 ? _tpLetterLeft : _tpLetterRight;
+            StartCoroutine(MoveLetter(TPLetters[useLetter], up: false, x: xCoord));
+
             yield return new WaitForSeconds(1.2f);
             StopCoroutine(_runningAnimationQueue);
             _animationQueue.Clear();
 
-            _showingArrow = (_showingArrow + 1) % _initialRotations.Length;
+            StartCoroutine(MoveLetter(TPLetters[useLetter], up: true, x: xCoord));
             Arrow.gameObject.SetActive(false);
+
+            _showingArrow = (_showingArrow + 1) % _initialRotations.Length;
+            useLetter ^= 1;
+
             yield return new WaitForSeconds(.1f);
-            Arrow.gameObject.SetActive(true);
-            Arrow.material.mainTexture = texture();
-            Arrow.transform.localEulerAngles = new Vector3(0, 0, angle());
         }
-        Arrow.gameObject.SetActive(false);
     }
 
     private Texture texture()
@@ -287,4 +336,64 @@ public class SimonSignalsModule : MonoBehaviour
             yield return null;
         }
     }
+
+#pragma warning disable 414
+    private readonly string TwitchHelpMessage = @"!{0} G cw/ccw [rotate the arrow with the letter G clockwise or counter-clockwise] | !{0} G cw/ccw 3 [rotate it 3 steps] | !{0} submit";
+    private bool TwitchPlaysActive = false;
+#pragma warning restore 414
+
+    IEnumerator ProcessTwitchCommand(string command)
+    {
+        Match m;
+        if ((m = Regex.Match(command, @"^\s*(?<ltr>[A-Z])\s+(?:(?<cw>cw)|ccw)(?:\s+(?<amt>\d))?\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
+        {
+            var ix = Array.IndexOf(_tpLetters, m.Groups["ltr"].Value.ToUpperInvariant()[0]);
+            if (ix == -1)
+                yield break;
+            var numberOfTimes = 1;
+            if (m.Groups["amt"].Success && (!int.TryParse(m.Groups["amt"].Value, out numberOfTimes) || numberOfTimes > 6))
+                yield break;
+            var button = m.Groups["cw"].Success ? ClockwiseButton : CounterClockwiseButton;
+
+            yield return null;
+            for (var i = 0; i < numberOfTimes; i++)
+            {
+                while (_showingArrow != ix)
+                    yield return null;
+                yield return new WaitForSeconds(.2f);
+                if (_showingArrow == ix)
+                    button.OnInteract();
+                yield return new WaitForSeconds(.2f);
+            }
+            yield break;
+        }
+
+        if (Regex.IsMatch(command, @"^\s*submit\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            yield return null;
+            SubmitButton.OnInteract();
+            yield return new WaitForSeconds(.1f);
+        }
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        while (!_moduleSolved)
+        {
+            yield return true;
+
+            if (_currentRotations[_showingArrow] != _expectedRotations[_showingArrow])
+            {
+                ClockwiseButton.OnInteract();
+                yield return new WaitForSeconds(.1f);
+            }
+
+            if (Enumerable.Range(0, _currentRotations.Length).All(i => _currentRotations[i] == _expectedRotations[i]))
+            {
+                SubmitButton.OnInteract();
+                yield return new WaitForSeconds(.1f);
+            }
+        }
+    }
 }
+
