@@ -108,8 +108,8 @@ public class SimonSignalsModule : MonoBehaviour
         _colorOffsetsPerStage[0] = new[] { 2, 0 }[rnd.Next(0, 2)];
         _shapeOffsetsPerStage[1] = new[] { 0, 1, 3 }[rnd.Next(0, 3)];
         _colorOffsetsPerStage[1] = new[] { 0, 1, 3 }[rnd.Next(0, 3)];
-        _shapeOffsetsPerStage[2] = new[] { 0, 1, 4, 3 }[rnd.Next(0, 3)];
-        _colorOffsetsPerStage[2] = new[] { 0, 1, 4, 3 }[rnd.Next(0, 3)];
+        _shapeOffsetsPerStage[2] = new[] { 0, 1, 4, 3 }[rnd.Next(0, 4)];
+        _colorOffsetsPerStage[2] = new[] { 0, 1, 4, 3 }[rnd.Next(0, 4)];
 
         //RULE SEED END
 
