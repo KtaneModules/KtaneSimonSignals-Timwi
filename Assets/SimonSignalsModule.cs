@@ -360,9 +360,7 @@ public class SimonSignalsModule : MonoBehaviour
             {
                 while (_showingArrow != ix)
                     yield return null;
-                yield return new WaitForSeconds(.2f);
-                if (_showingArrow == ix)
-                    button.OnInteract();
+                button.OnInteract();
                 yield return new WaitForSeconds(.2f);
             }
             yield break;

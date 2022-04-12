@@ -15,8 +15,8 @@ MonoBehaviour:
   title: Simon Signals
   author: JakkOfKlubs & Timwi
   description: "Because \u201CPoints\u201D doesn\u2019t start with an S.\r\n\nModeled
-    and implemented by JakkOfKlubs and Timwi\nCombining ideas from Lumbud84, JakkOfKlubs
-    and Timwi\nPlaytesting by BakersDozenBagels"
+    and implemented by Quinn Wuest and Timwi\nCombining ideas from Lumbud84, Quinn
+    Wuest and Timwi\nPlaytesting by BakersDozenBagels"
   version: 1.0
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 112bd799c65afca47bc6fce495050639, type: 3}
