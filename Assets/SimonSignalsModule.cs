@@ -348,7 +348,7 @@ public class SimonSignalsModule : MonoBehaviour
         if ((m = Regex.Match(command, @"^\s*(?<ltr>[A-Z])\s+(?:(?<cw>cw)|ccw)(?:\s+(?<amt>\d))?\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)).Success)
         {
             var ix = Array.IndexOf(_tpLetters, m.Groups["ltr"].Value.ToUpperInvariant()[0]);
-            if (ix == -1)
+            if (ix == -1 || ix > _currentStage + 2)
                 yield break;
             var numberOfTimes = 1;
             if (m.Groups["amt"].Success && (!int.TryParse(m.Groups["amt"].Value, out numberOfTimes) || numberOfTimes > 6))
