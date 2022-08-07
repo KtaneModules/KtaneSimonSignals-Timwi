@@ -359,7 +359,7 @@ public class SimonSignalsModule : MonoBehaviour
             for (var i = 0; i < numberOfTimes; i++)
             {
                 while (_showingArrow != ix)
-                    yield return null;
+                    yield return "trycancel";
                 button.OnInteract();
                 yield return new WaitForSeconds(.2f);
             }
